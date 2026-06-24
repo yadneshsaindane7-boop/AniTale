@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AniTale</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="nav-container glass">
+      <div class="logo">AniTale</div>
+      <nav>
+        <a href="index.html" class="active">Home</a>
+        <a href="diary.html">My Diary</a>
+        <div id="navAuthContainer" style="display: inline-block; position: relative;">
+          <!-- Dynamically filled by auth.js -->
+          <a href="auth.html" id="authLink">Login</a>
+        </div>
+      </nav>
+    </div>
+    <div class="search-container">
+      <input type="text" id="searchInput" placeholder="Search anime..." />
+      <button id="searchBtn">Search</button>
+    </div>
+  </header>
+
+  <main>
+    <h2 class="section-title">Currently Airing</h2>
+    <div id="animeList" class="anime-grid"></div>
+  </main>
+
+  <footer class="footer">
+    <p>© AniTale. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { initAuthLink, syncPendingProfile } from "./js/auth.js";
+    import { initHomePage } from "./js/home.js";
+    import { setupScrollEffects } from "./js/ui.js";
+
+    initAuthLink();
+    syncPendingProfile();
+    initHomePage();
+    setupScrollEffects();
+  </script>
+</body>
+</html>

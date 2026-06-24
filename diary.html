@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniTale - My Diary</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <div class="logo">AniTale</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="diary.html" class="active">My Diary</a>
+      </nav>
+    </div>
+    <div id="navAuthContainer">
+      <p style="opacity: 0.5; font-size: 13px;">Loading account...</p>
+    </div>
+  </header>
+
+  <main>
+    <h2 class="section-title">My Diary</h2>
+    
+    <!-- Dynamic Library Stats Analytics Board Container -->
+    <div id="diaryAnalytics" class="reveal"></div>
+    
+    <div id="diaryList" class="anime-grid"></div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <footer class="footer">
+    © AniTale. All rights reserved.
+  </footer>
+
+  <script type="module">
+    import { initAuthLink } from "./js/auth.js";
+    import { initDiaryPage } from "./js/diary.js";
+    initAuthLink();
+    initDiaryPage();
+  </script>
+</body>
+</html>

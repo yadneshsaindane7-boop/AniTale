@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AniTale | Login & Signup</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="auth-bg"></div>
+
+  <div class="auth-card">
+    <h1 style="text-align:center; color:#b18aff; margin-bottom:20px;">AniTale</h1>
+
+    <div class="auth-toggle">
+      <button id="showLogin" class="active">Login</button>
+      <button id="showSignup">Sign Up</button>
+    </div>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm" class="auth-form">
+      <input id="loginEmail" type="email" placeholder="Email" />
+      <input id="loginPassword" type="password" placeholder="Password" />
+      <button type="button" id="loginBtn">Login</button>
+      <button type="button" class="googleLoginBtn" style="background: linear-gradient(135deg, #4285f4, #35a853); margin-top: 5px;">Sign in with Google</button>
+    </form>
+
+    <!-- SIGNUP FORM -->
+    <form id="signupForm" class="auth-form" style="display:none;">
+      <input id="signupName" type="text" placeholder="Full Name" />
+      <input id="signupUsername" type="text" placeholder="Username" />
+      <input id="signupEmail" type="email" placeholder="Email" />
+      <input id="signupPassword" type="password" placeholder="Password" />
+      <input id="signupBirthdate" type="date" />
+      <select id="signupGender">
+        <option value="" disabled selected>Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+      <button type="button" id="signupBtn">Sign Up</button>
+      <button type="button" class="googleLoginBtn" style="background: linear-gradient(135deg, #4285f4, #35a853); margin-top: 5px;">Sign up with Google</button>
+    </form>
+  </div>
+
+  <footer class="footer">
+    <p>© AniTale. All rights reserved.</p>
+  </footer>
+
+  <script type="module">
+    import { initAuthPage } from "./js/auth.js";
+    initAuthPage();
+  </script>
+</body>
+</html>

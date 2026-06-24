@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AniTale - Anime Detail</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header>
+  <div class="nav-container glass">
+    <div class="logo">AniTale</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="diary.html">My Diary</a>
+      <div id="navAuthContainer" style="display: inline-block; position: relative;">
+        <a href="auth.html" id="authLink">Login</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="animeDetail" class="anime-detail-container glass"></main>
+
+<footer class="footer">
+  <p>© AniTale. All rights reserved.</p>
+</footer>
+
+<script type="module">
+  import { initAuthLink, syncPendingProfile } from "./js/auth.js";
+  import { initAnimeDetailPage } from "./js/animeDetail.js";
+  import { setupScrollEffects } from "./js/ui.js";
+
+  initAuthLink();
+  syncPendingProfile();
+  initAnimeDetailPage();
+  setupScrollEffects();
+</script>
+</body>
+</html>

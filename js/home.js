@@ -44,9 +44,15 @@ export function initHomePage() {
       const div = document.createElement("div");
       div.className = "anime-card glass reveal";
       
-      const title = item.title || "Unknown Title";
-      const status = item.status || "Unknown";
+      // Map Anilist properties (title.english/romaji and status variations)
+      const title = item.title?.english || item.title?.romaji || "Unknown Title";
+      let status = item.status || "Unknown";
       
+      // Format status text cleanly for your CSS tag classes
+      if (status === "RELEASING") status = "Currently Airing";
+      if (status === "FINISHED") status = "Finished Airing";
+      if (status === "NOT_YET_RELEASED") status = "Upcoming";
+
       let badgeClass = "status-finished";
       if (status.toLowerCase().includes("airing")) badgeClass = "status-airing";
       if (status.toLowerCase().includes("upcoming")) badgeClass = "status-upcoming";
@@ -54,42 +60,96 @@ export function initHomePage() {
       div.innerHTML = `
         <div class="anime-card-img-wrap">
           <div class="status-tag ${badgeClass}">${status}</div>
-          <img src="${item.images?.jpg?.large_image_url || ''}" alt="${title}">
+          <img src="${item.coverImage?.large || ''}" alt="${title}">
         </div>
         <h2 title="${title}">${title}</h2>
       `;
 
       div.onclick = () => {
-        window.location.href = `anime.html?id=${item.mal_id}`;
+        // Keeps your exact detail routing path intact using the Anilist ID string key
+        window.location.href = `anime.html?id=${item.id}`;
       };
 
       list.appendChild(div);
     });
 
-    setupRevealNow();
+    try {
+      if (typeof setupRevealNow === "function") {
+        setupRevealNow();
+      }
+    } catch (revealError) {
+      console.warn("Reveal animation handled gracefully:", revealError);
+      document.querySelectorAll(".anime-card.reveal").forEach(card => {
+        card.classList.add("visible");
+        card.style.opacity = "1";
+        card.style.transform = "none";
+      });
+    }
   }
 
-  // 3. CORE HANDSHAKE - INITIAL HOME HOOK ROUTINES LOAD
+  // 3. ANILIST METADATA FETCHER ENGINE (GRAPHQL DATA COUPLER)
+  async function makeAnilistRequest(searchQuery = null, genre = null, sort = "POPULARITY_DESC") {
+    // GraphQL structural query setup definitions
+    const query = `
+      query ($search: String, $genre: String, $sort: [MediaSort]) {
+        Page(page: 1, perPage: 24) {
+          media(search: $search, genre: $genre, sort: $sort, type: ANIME, isAdult: false) {
+            id
+            title {
+              romaji
+              english
+            }
+            coverImage {
+              large
+            }
+            status
+          }
+        }
+      }
+    `;
+
+    // Map your frontend dropdown filters directly to Anilist strict Enum variants
+    let apiSort = "POPULARITY_DESC";
+    if (sort === "score" || sort === "members") apiSort = "SCORE_DESC";
+
+    const variables = {};
+    if (searchQuery) variables.search = searchQuery;
+    if (genre) variables.genre = genre;
+    variables.sort = [apiSort];
+
+    const options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({ query, variables })
+    };
+
+    const response = await fetch("https://graphql.anilist.co", options);
+    if (!response.ok) throw new Error(`Anilist network pipe failure: ${response.status}`);
+    
+    const json = await response.json();
+    return json.data?.Page?.media || [];
+  }
+
+  // 4. CORE INITIAL SEASONS HOOK ROUTINES LOAD
   async function loadInitialTrending() {
     if (headingTitle) headingTitle.textContent = "Trending Seasonal Collection";
     
-    const cacheKey = "trending_anime_cache";
-    const cacheTimeKey = "trending_anime_time";
+    const cacheKey = "anilist_trending_cache";
+    const cacheTimeKey = "anilist_trending_time";
     const cachedData = sessionStorage.getItem(cacheKey);
     const cachedTime = sessionStorage.getItem(cacheTimeKey);
 
-    // Serve instantly from client memory if cache is fresh (< 1 hour)
     if (cachedData && cachedTime && (Date.now() - parseInt(cachedTime) < 3600000)) {
       renderCardGrid(JSON.parse(cachedData));
       return;
     }
 
     try {
-      const res = await fetch("https://api.jikan.moe/v4/seasons/now");
-      if (!res.ok) throw new Error("Network response error");
-      const json = await res.json();
-      const data = json.data || [];
-      
+      // Fetch fresh trending data instantly using our new setup pipeline rules
+      const data = await makeAnilistRequest(null, null, "POPULARITY_DESC");
       if (data.length > 0) {
         sessionStorage.setItem(cacheKey, JSON.stringify(data));
         sessionStorage.setItem(cacheTimeKey, Date.now().toString());
@@ -101,21 +161,19 @@ export function initHomePage() {
     }
   }
 
-  // 4. TRANSACTION ENGINE - COORDINATE EXPLICIT PARAM QUERIES TO UPSTREAM SERVERS
+  // 5. SEARCH AND FILTER ROUTINES
   async function executeSearchAndFilter() {
     const queryStr = searchInput ? searchInput.value.trim() : "";
-    const genre = filterGenre ? filterGenre.value : "";
-    const orderBy = filterOrderBy ? filterOrderBy.value : "popularity";
-    const rating = filterRating ? filterRating.value : "";
+    const genre = filterGenre ? filterGenre.value.trim() : "";
+    const orderBy = filterOrderBy ? filterOrderBy.value.trim() : "popularity";
 
     if (!searchBtn) return;
 
-    // UI Interactive Loading Feedback Loops
     searchBtn.disabled = true;
     const originalText = searchBtn.textContent;
     searchBtn.textContent = "...";
 
-    if (queryStr || genre || orderBy !== "popularity" || rating) {
+    if (queryStr || genre || orderBy !== "popularity") {
       if (headingTitle) headingTitle.textContent = "Filtered Search Results";
     } else {
       searchBtn.disabled = false;
@@ -125,30 +183,18 @@ export function initHomePage() {
     }
 
     try {
-      // Safely construct explicit query parameters string natively
-      const urlParams = new URLSearchParams();
-      if (queryStr) urlParams.append("q", queryStr);
-      if (genre) urlParams.append("genres", genre);
-      if (orderBy) urlParams.append("order_by", orderBy);
-      urlParams.append("sort", "desc");
-      if (rating) urlParams.append("rating", rating);
-      urlParams.append("sfw", "true");
-
-      const res = await fetch(`https://api.jikan.moe/v4/anime?${urlParams.toString()}`);
-      if (!res.ok) throw new Error("Search request error");
-      const json = await res.json();
-      
-      renderCardGrid(json.data || []);
+      const results = await makeAnilistRequest(queryStr || null, genre || null, orderBy);
+      renderCardGrid(results);
     } catch (error) {
-      console.error(error);
-      showToast("Error resolving advanced filter sequence.", "error");
-    } {
+      console.error("Anilist Search System error:", error);
+      showToast("Error resolving advanced search parameters.", "error");
+    } finally {
       searchBtn.disabled = false;
       searchBtn.textContent = originalText;
     }
   }
 
-  // 5. INPUT REGISTRATION EVENT HANDLERS
+  // 6. INPUT REGISTRATION EVENT HANDLERS
   if (searchBtn) {
     searchBtn.onclick = (e) => {
       e.preventDefault();
@@ -173,6 +219,10 @@ export function initHomePage() {
     };
   }
 
+  if (filterGenre) {
+    filterGenre.onchange = () => executeSearchAndFilter();
+  }
+
   if (resetFiltersBtn) {
     resetFiltersBtn.onclick = (e) => {
       e.preventDefault();
@@ -186,6 +236,5 @@ export function initHomePage() {
     };
   }
 
-  // Initialize Home Dashboard Core Execution
   loadInitialTrending();
 }

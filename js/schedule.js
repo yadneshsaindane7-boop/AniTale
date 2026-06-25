@@ -1,87 +1,146 @@
-import { setupRevealNow, showToast } from "./ui.js";
+import { setupRevealNow } from "./ui.js";
 
 export function initSchedulePage() {
   const scheduleGrid = document.getElementById("scheduleGrid");
-  const tabsContainer = document.getElementById("dayTabsContainer");
+  const tabButtons = document.querySelectorAll(".schedule-tab-btn");
 
-  if (!scheduleGrid || !tabsContainer) return;
+  if (!scheduleGrid) return;
 
-  // 1. TRANSACTION INTERFACE - FETCH AIRING TIMELINES FOR A SPECIFIC DAY NODE
-  async function loadScheduleForDay(dayName) {
-    scheduleGrid.innerHTML = `
-      <div style="grid-column:1/-1; text-align:center; padding: 60px 0; color: var(--text-muted); font-size:14px;">
-        Mapping broadcast timetables for ${dayName}...
-      </div>
-    `;
+  const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  
+  // Resolve today's lowercase weekday string name to set the initial active tab state natively
+  const todayIndex = new Date().getDay();
+  let currentSelectedDay = daysOfWeek[todayIndex];
 
+  // Align active visual highlight states cleanly on load based on your design system
+  tabButtons.forEach(btn => {
+    const targetDay = btn.getAttribute("data-day") || btn.textContent.trim().toLowerCase();
+    if (targetDay === currentSelectedDay) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  async function fetchAniListSchedule(dayName) {
     try {
-      const res = await fetch(`https://api.jikan.moe/v4/schedules?filter=${dayName}&sfw=true`);
-      if (!res.ok) throw new Error("Schedule server pipeline response error");
-      const json = await res.json();
-      const data = json.data || [];
+      scheduleGrid.innerHTML = "<p style='grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);'>Loading release schedule grids...</p>";
 
-      scheduleGrid.innerHTML = "";
+      // Establish a secure time range threshold centered around the current moment
+      const currentTimeUnix = Math.floor(Date.now() / 1000);
+      const startThreshold = currentTimeUnix - (4 * 24 * 60 * 60);
+      const endThreshold = currentTimeUnix + (4 * 24 * 60 * 60);
 
-      if (data.length === 0) {
+      // FIXED GRAPHQL QUERY: Corrected 'airingAt_less' to 'airingAt_lesser' exactly as requested by the AniList schema response
+      const query = `
+        query ($page: Int, $perPage: Int, $start: Int, $end: Int) {
+          Page(page: $page, perPage: $perPage) {
+            airingSchedules(airingAt_greater: $start, airingAt_lesser: $end) {
+              airingAt
+              episode
+              media {
+                id
+                title {
+                  romaji
+                  english
+                }
+                coverImage {
+                  large
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      const response = await fetch("https://graphql.anilist.co", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Accept": "application/json" 
+        },
+        body: JSON.stringify({ 
+          query: query, 
+          variables: { 
+            start: startThreshold, 
+            end: endThreshold,
+            page: 1,
+            perPage: 50
+          } 
+        })
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || json.errors) {
+        console.error("Detailed GraphQL Error Object:", json.errors);
+        const errorMsg = json.errors && json.errors[0] ? json.errors[0].message : `HTTP Status ${response.status}`;
+        
         scheduleGrid.innerHTML = `
-          <div class="empty-state-container reveal visible" style="grid-column: 1/-1;">
-            <div class="empty-state-icon">📆</div>
-            <h3>No Releases Recorded</h3>
-            <p>There are no premium airing schedules mapped onto ${dayName} for this seasonal block.</p>
+          <div style="grid-column:1/-1; text-align:center; padding:40px;">
+            <p style="color:#ff8a80; font-weight:600; margin-bottom:8px;">AniList API rejected the query request.</p>
+            <p style="color:var(--text-muted); font-size:13px; font-family:monospace; background:rgba(0,0,0,0.2); padding:12px; border-radius:8px; display:inline-block;">
+              Error details: ${errorMsg}
+            </p>
           </div>
         `;
         return;
       }
 
-      // 2. RENDERING ARCHITECTURE BUILD LOOP
-      data.forEach((anime) => {
-        const div = document.createElement("div");
-        div.className = "anime-card glass reveal";
-        
-        const title = anime.title || "Unknown Title";
-        const broadcastTime = anime.broadcast?.time ? `⏰ ${anime.broadcast.time} JST` : "📌 Broadcast Time Unset";
+      const list = json.data?.Page?.airingSchedules || [];
 
-        div.innerHTML = `
-          <div class="anime-card-img-wrap">
-            <div class="status-tag status-airing">${broadcastTime}</div>
-            <img src="${anime.images?.jpg?.large_image_url || ''}" alt="${title}">
-          </div>
-          <h2 title="${title}">${title}</h2>
-        `;
-
-        // Interactive route direction handler
-        div.onclick = () => {
-          window.location.href = `anime.html?id=${anime.mal_id}`;
-        };
-
-        scheduleGrid.appendChild(div);
+      // Filter elements dynamically to group items perfectly into your weekday slots
+      const filteredShows = list.filter(item => {
+        if (!item.media) return false;
+        const airDate = new Date(item.airingAt * 1000);
+        return daysOfWeek[airDate.getDay()] === dayName.toLowerCase();
       });
 
-      setupRevealNow();
+      if (filteredShows.length === 0) {
+        scheduleGrid.innerHTML = `<p style='grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);'>No anime series scheduled to air on ${dayName}.</p>`;
+        return;
+      }
 
-    } catch (error) {
-      console.error(error);
-      showToast(`Could not recover timetables for ${dayName}.`, "error");
+      scheduleGrid.innerHTML = filteredShows.map(item => {
+        const id = item.media.id;
+        const title = item.media.title?.english || item.media.title?.romaji || "Unknown Title";
+        const imgUrl = item.media.coverImage?.large || "";
+        const airTime = new Date(item.airingAt * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        return `
+          <div class="anime-card glass reveal visible" onclick="window.location.href='anime.html?id=${id}'">
+            <div class="anime-card-img-wrap">
+              <div class="status-tag status-airing">Ep ${item.episode} @ ${airTime}</div>
+              <img src="${imgUrl}" alt="${title}">
+            </div>
+            <h2 title="${title}">${title}</h2>
+          </div>
+        `;
+      }).join("");
+
+      if (typeof setupRevealNow === "function") {
+        setupRevealNow();
+      }
+
+    } catch (err) {
+      console.error(err);
+      scheduleGrid.innerHTML = "<p style='grid-column:1/-1; text-align:center; padding:40px; color:#ff8a80;'>Failed to sync schedule matrix due to a network timeout.</p>";
     }
   }
 
-  // 3. TAB EVENT HANDLERS REGISTRATION
-  const buttons = tabsContainer.querySelectorAll(".schedule-tab-btn");
-  buttons.forEach((btn) => {
+  // Hook event listeners cleanly onto your tabs layout buttons row array
+  tabButtons.forEach(btn => {
     btn.onclick = (e) => {
       e.preventDefault();
       
-      // Clean previous active indicators out of frame
-      buttons.forEach((b) => b.classList.remove("active"));
-      
-      // Attach active highlights onto your current target element selection
+      tabButtons.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
-      
-      const targetDay = btn.getAttribute("data-day");
-      loadScheduleForDay(targetDay);
+
+      const selectedDay = btn.getAttribute("data-day") || btn.textContent.trim().toLowerCase();
+      fetchAniListSchedule(selectedDay);
     };
   });
 
-  // Default execution layout loads on Monday on initial load phase
-  loadScheduleForDay("monday");
+  // Load the initial schedule view on module generation
+  fetchAniListSchedule(currentSelectedDay);
 }

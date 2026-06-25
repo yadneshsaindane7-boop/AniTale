@@ -1,40 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AniTale - Anime Detail</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniTale - Anime Details</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="nav-container glass">
-    <div class="logo">AniTale</div>
-    <nav>
-      <a href="index.html">Home</a>
-      <a href="diary.html">My Diary</a>
-      <div id="navAuthContainer" style="display: inline-block; position: relative;">
-        <a href="auth.html" id="authLink">Login</a>
-      </div>
-    </nav>
-  </div>
-</header>
 
-<main id="animeDetail" class="anime-detail-container glass"></main>
+  <header>
+    <div class="nav-container">
+      <div class="logo">AniTale</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="feed.html">Community Feed</a>
+        <a href="schedule.html">Schedule</a>
+        <a href="diary.html">My Diary</a>
+      </nav>
+    </div>
+    <div id="navAuthContainer">
+      <p style="opacity: 0.5; font-size: 13px;">Loading account...</p>
+    </div>
+  </header>
 
-<footer class="footer">
-  <p>© AniTale. All rights reserved.</p>
-</footer>
+  <main>
+    <div id="animeDetailContainer"></div>
+  </main>
 
-<script type="module">
-  import { initAuthLink, syncPendingProfile } from "./js/auth.js";
-  import { initAnimeDetailPage } from "./js/animeDetail.js";
-  import { setupScrollEffects } from "./js/ui.js";
+  <div id="toast-container"></div>
 
-  initAuthLink();
-  syncPendingProfile();
-  initAnimeDetailPage();
-  setupScrollEffects();
-</script>
+  <footer class="footer">
+    © AniTale. All rights reserved.
+  </footer>
+
+  <script type="module">
+    import { initAuthLink } from "./js/auth.js";
+    import { initDetailPage } from "./js/animeDetail.js";
+    initAuthLink();
+    initDetailPage();
+  </script>
 </body>
 </html>

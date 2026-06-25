@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AniTale - Release Schedule</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Local scoped styles for the calendar selector row layout */
+    .schedule-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      width: 88%;
+      max-width: 1400px;
+      margin: 0 auto 32px;
+      flex-wrap: wrap;
+    }
+    .schedule-tab-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: capitalize;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .schedule-tab-btn:hover, .schedule-tab-btn.active {
+      color: #fff;
+      border-color: var(--border-color-hover);
+      background: var(--bg-surface-elevated);
+      box-shadow: 0 0 15px var(--accent-glow);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="nav-container">
+      <div class="logo">AniTale</div>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="feed.html">Community Feed</a>
+        <a href="schedule.html" class="active">Schedule</a>
+        <a href="diary.html">My Diary</a>
+      </nav>
+    </div>
+    <div id="navAuthContainer">
+      <p style="opacity: 0.5; font-size: 13px;">Loading account...</p>
+    </div>
+  </header>
+
+  <main>
+    <h2 class="section-title">Weekly Release Calendar</h2>
+    <p style="width: 88%; max-width: 1400px; margin: -10px auto 30px; font-size: 14px; color: var(--text-muted);">
+      Track current broadcasting release days to catch new episodes the exact moment they drop globally.
+    </p>
+
+    <!-- Calendar Day Selection Navigation Tabs -->
+    <div class="schedule-tabs" id="dayTabsContainer">
+      <button class="schedule-tab-btn active" data-day="monday">Monday</button>
+      <button class="schedule-tab-btn" data-day="tuesday">Tuesday</button>
+      <button class="schedule-tab-btn" data-day="wednesday">Wednesday</button>
+      <button class="schedule-tab-btn" data-day="thursday">Thursday</button>
+      <button class="schedule-tab-btn" data-day="friday">Friday</button>
+      <button class="schedule-tab-btn" data-day="saturday">Saturday</button>
+      <button class="schedule-tab-btn" data-day="sunday">Sunday</button>
+    </div>
+    
+    <div id="scheduleGrid" class="anime-grid"></div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <footer class="footer">
+    © AniTale. All rights reserved.
+  </footer>
+
+  <script type="module">
+    import { initAuthLink } from "./js/auth.js";
+    import { initSchedulePage } from "./js/schedule.js";
+    initAuthLink();
+    initSchedulePage();
+  </script>
+</body>
+</html>

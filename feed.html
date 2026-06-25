@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AniTale - My Diary</title>
+  <title>AniTale - Community Feed</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,9 +13,9 @@
       <div class="logo">AniTale</div>
       <nav>
         <a href="index.html">Home</a>
-        <a href="feed.html">Community Feed</a>
+        <a href="feed.html" class="active">Community Feed</a>
         <a href="schedule.html">Schedule</a>
-        <a href="diary.html" class="active">My Diary</a>
+        <a href="diary.html">My Diary</a>
       </nav>
     </div>
     <div id="navAuthContainer">
@@ -24,12 +24,12 @@
   </header>
 
   <main>
-    <h2 class="section-title">My Diary</h2>
+    <h2 class="section-title">Global Community Activity</h2>
+    <p style="width: 88%; max-width: 1400px; margin: -10px auto 30px; font-size: 14px; color: var(--text-muted);">
+      See what other anime fans across the globe are dropping into their personal diaries in real-time.
+    </p>
     
-    <!-- Dynamic Library Stats Analytics Board Container -->
-    <div id="diaryAnalytics" class="reveal"></div>
-    
-    <div id="diaryList" class="anime-grid"></div>
+    <div id="feedContainer" class="anime-grid"></div>
   </main>
 
   <div id="toast-container"></div>
@@ -40,9 +40,9 @@
 
   <script type="module">
     import { initAuthLink } from "./js/auth.js";
-    import { initDiaryPage } from "./js/diary.js";
+    import { initFeedPage } from "./js/feed.js";
     initAuthLink();
-    initDiaryPage();
+    initFeedPage();
   </script>
 </body>
 </html>

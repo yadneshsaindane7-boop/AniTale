@@ -51,21 +51,51 @@ export function initDiaryPage() {
 
       // 2. RUN METRIC DATA CALCULATIONS FOR ANALYTICS CARD BOARD
       let counts = { Total: data.length, Perfection: 0, GoForIt: 0, Timepass: 0, Skip: 0 };
+      let totalMinutesSpent = 0;
       
       data.forEach((item) => {
+        // Tally categories
         const v = (item.verdict || "").toLowerCase().replace(/\s+/g, "");
         if (v === "perfection") counts.Perfection++;
         else if (v === "goforit") counts.GoForIt++;
         else if (v === "timepass") counts.Timepass++;
         else if (v === "skip") counts.Skip++;
+
+        // Asynchronous Watch-Time Aggregator: Parse episodes * duration
+        const episodes = Number(item.episodesCount || 12);
+        const duration = Number(item.minutesDuration || 24);
+        
+        // Exclude 'Skip' categories from calculation to maintain accurate metric values
+        if (v !== "skip") {
+          totalMinutesSpent += (episodes * duration);
+        }
       });
 
-      // 3. INJECT THE ANALYTICS CONTROLS HTML DISPLAY
+      // Transform raw accumulation numbers into deep Days, Hours, and Minutes strings
+      const totalHours = Math.floor(totalMinutesSpent / 60);
+      const remainingMinutes = totalMinutesSpent % 60;
+      const finalDays = Math.floor(totalHours / 24);
+      const remainingHours = totalHours % 24;
+
+      let watchTimeResultString = "";
+      if (finalDays > 0) {
+        watchTimeResultString = `${finalDays}d ${remainingHours}h`;
+      } else if (remainingHours > 0) {
+        watchTimeResultString = `${remainingHours}h ${remainingMinutes}m`;
+      } else {
+        watchTimeResultString = `${remainingMinutes} mins`;
+      }
+
+      // 3. INJECT THE ANALYTICS CONTROLS HTML DISPLAY WITH TRACKING INJECTOR CARD
       if (analyticsBox) {
         analyticsBox.innerHTML = `
-          <div class="analytics-dashboard-card">
+          <div class="analytics-dashboard-card" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+            <div class="stat-metric-box total" style="background: linear-gradient(135deg, var(--bg-surface-elevated) 0%, rgba(6,182,212,0.05) 100%);">
+              <span class="label">⏳ Watch Time</span>
+              <span class="count" style="color: var(--accent-secondary); font-size: 20px;">${watchTimeResultString}</span>
+            </div>
             <div class="stat-metric-box total">
-              <span class="label">Total Tracked</span>
+              <span class="label">Total Logs</span>
               <span class="count">${counts.Total}</span>
             </div>
             <div class="stat-metric-box perfection">

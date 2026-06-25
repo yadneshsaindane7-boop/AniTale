@@ -11,12 +11,14 @@ import {
   getDoc 
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-// Dynamically inject user avatar chip dropdown menu upon verified authorization state updates
+// 1. DYNAMIC NAVBAR USER AVATAR & DROPDOWN ENGINE
 export function initAuthLink() {
   const container = document.getElementById("navAuthContainer");
   if (!container) return;
 
   onAuthStateChanged(auth, async (user) => {
+    container.innerHTML = ""; // Clear wrapper to prevent duplicate rendering
+
     if (user) {
       let displayName = "User";
       try {
@@ -33,13 +35,13 @@ export function initAuthLink() {
       const initialChar = displayName.charAt(0).toUpperCase();
 
       container.innerHTML = `
-        <div class="user-profile-chip" id="profileChipBtn">
-          <div class="user-avatar-icon">${initialChar}</div>
+        <div class="user-profile-chip" id="profileChipBtn" style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 20px; transition: background 0.2s ease; position: relative;">
+          <div class="user-avatar-icon" style="width: 24px; height: 24px; background: var(--accent-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;">${initialChar}</div>
           <span style="font-size: 13px; font-weight: 500; color: var(--text-main); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</span>
         </div>
-        <div class="user-profile-dropdown select-hide" id="profileMenuDropdown">
-          <div class="dropdown-user-info">Logged in as ${displayName}</div>
-          <button class="profile-dropdown-item" id="logoutDropdownBtn" style="color: #ff8a80;">Logout</button>
+        <div class="user-profile-dropdown select-hide" id="profileMenuDropdown" style="position: absolute; top: 60px; right: 6%; background: var(--bg-surface-elevated); border: 1px solid var(--border-color-hover); border-radius: 12px; padding: 12px; min-width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000;">
+          <div class="dropdown-user-info" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;">Logged in as ${displayName}</div>
+          <button class="profile-dropdown-item" id="logoutDropdownBtn" style="width: 100%; background: transparent; border: none; text-align: left; font-size: 13px; font-weight: 600; cursor: pointer; color: #ff8a80; padding: 6px 0;">Logout</button>
         </div>
       `;
 
@@ -56,21 +58,23 @@ export function initAuthLink() {
         });
       }
 
-      document.getElementById("logoutDropdownBtn")?.addEventListener("click", async () => {
+      document.getElementById("logoutDropdownBtn")?.addEventListener("click", async (e) => {
+        e.preventDefault();
         try {
           await signOut(auth);
-          window.location.href = "auth.html";
+          showToast("Signed out successfully.", "info");
+          setTimeout(() => { window.location.href = "auth.html"; }, 500);
         } catch (err) {
           console.error(err);
         }
       });
     } else {
-      container.innerHTML = `<a href="auth.html" id="authLink">Login</a>`;
+      container.innerHTML = `<a href="auth.html" id="authLink" style="text-decoration: none; font-size: 13px; font-weight: 600; color: var(--accent-primary); background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.2); padding: 8px 16px; border-radius: 10px; transition: all 0.2s ease;">Sign In / Register</a>`;
     }
   });
 }
 
-// Syncs profile storage data after initial email account verification confirmation
+// 2. SIGNUP LOCALSTORAGE DATA SYNCHRONIZATION 
 export async function syncPendingProfile() {
   const pending = localStorage.getItem("pendingProfile");
   if (!pending) return;
@@ -94,7 +98,7 @@ export async function syncPendingProfile() {
   });
 }
 
-// Structural page validation routines matching original authorization bindings
+// 3. CORE AUTHENTICATION SCREEN INTERACTION CONTROLLER
 export function initAuthPage() {
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
@@ -103,21 +107,25 @@ export function initAuthPage() {
 
   if (!loginForm || !signupForm || !showLogin || !showSignup) return;
 
-  showLogin.onclick = () => {
+  showLogin.onclick = (e) => {
+    e.preventDefault();
     loginForm.style.display = "flex";
     signupForm.style.display = "none";
     showLogin.classList.add("active");
     showSignup.classList.remove("active");
   };
 
-  showSignup.onclick = () => {
+  showSignup.onclick = (e) => {
+    e.preventDefault();
     signupForm.style.display = "flex";
     loginForm.style.display = "none";
     showSignup.classList.add("active");
     showLogin.classList.remove("active");
   };
 
-  document.getElementById("loginBtn")?.addEventListener("click", async () => {
+  // EMAIL AND PASSWORD SIGN IN LISTENER
+  document.getElementById("loginBtn")?.addEventListener("click", async (e) => {
+    e.preventDefault();
     const email = document.getElementById("loginEmail").value.trim();
     const password = document.getElementById("loginPassword").value.trim();
 
@@ -135,9 +143,11 @@ export function initAuthPage() {
     }
   });
 
+  // GOOGLE OAUTH POPUP LISTENER
   const googleButtons = document.querySelectorAll(".googleLoginBtn");
   googleButtons.forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
       try {
         const result = await signInWithPopup(auth, googleProvider);
         const user = result.user;
@@ -152,12 +162,15 @@ export function initAuthPage() {
           setTimeout(() => { window.location.href = "index.html"; }, 1000);
         }
       } catch (error) {
+        console.error(error);
         showToast("Google authorization rejected.", "error");
       }
     });
   });
 
-  document.getElementById("signupBtn")?.addEventListener("click", async () => {
+  // EMAIL AND PASSWORD SIGN UP REGISTRATION LISTENER
+  document.getElementById("signupBtn")?.addEventListener("click", async (e) => {
+    e.preventDefault();
     const name = document.getElementById("signupName").value.trim();
     const username = document.getElementById("signupUsername").value.trim();
     const email = document.getElementById("signupEmail").value.trim();
@@ -191,41 +204,43 @@ export function initAuthPage() {
   });
 }
 
+// 4. GOOGLE OAUTH FIRST-TIME ONBOARDING DIALOG MODAL
 function promptGoogleProfileCompletion(user, userRef) {
   const backdrop = document.createElement("div");
-  backdrop.className = "auth-modal-backdrop";
+  backdrop.className = "modal-backdrop"; // Uses centralized styling rule maps safely
 
   const card = document.createElement("div");
-  card.className = "auth-modal-card";
+  card.className = "modal-card";
 
   card.innerHTML = `
     <h3>Complete Profile</h3>
-    <p>Welcome to AniTale! Please provide your details to finish setting up your account.</p>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px; line-height:1.5;">Welcome to AniTale! Please provide your details to finish setting up your account.</p>
     
-    <div class="auth-form">
-      <div class="modal-field">
-        <label for="googleBirthdate">Birthdate</label>
-        <input id="googleBirthdate" type="date" required />
-      </div>
-      
-      <div class="modal-field">
-        <label for="googleGender">Gender</label>
-        <select id="googleGender" required>
-          <option value="" disabled selected>Select Gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
-      
-      <button type="button" id="submitGoogleDetailsBtn">Finish Onboarding</button>
+    <div class="modal-field">
+      <label for="googleBirthdate">Birthdate</label>
+      <input id="googleBirthdate" type="date" required style="background:var(--bg-surface-elevated); border:1px solid var(--border-color); border-radius:10px; padding:12px; color:#fff; width:100%; outline:none;" />
+    </div>
+    
+    <div class="modal-field">
+      <label for="googleGender">Gender</label>
+      <select id="googleGender" required>
+        <option value="" disabled selected>Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    
+    <div class="modal-actions">
+      <button type="button" id="submitGoogleDetailsBtn" class="modal-btn save" style="width:100%; background:#fff; color:#000;">Finish Onboarding</button>
     </div>
   `;
 
   backdrop.appendChild(card);
   document.body.appendChild(backdrop);
 
-  document.getElementById("submitGoogleDetailsBtn").onclick = async () => {
+  document.getElementById("submitGoogleDetailsBtn").onclick = async (e) => {
+    e.preventDefault();
     const birthdate = document.getElementById("googleBirthdate").value;
     const gender = document.getElementById("googleGender").value;
 
@@ -248,6 +263,7 @@ function promptGoogleProfileCompletion(user, userRef) {
       showToast("Onboarding complete! Welcome to AniTale.", "success");
       setTimeout(() => { window.location.href = "index.html"; }, 1000);
     } catch (err) {
+      console.error(err);
       showToast("Failed to compile user metadata record layers.", "error");
     }
   };
